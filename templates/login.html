@@ -1,14 +1,22 @@
 {% extends "base.html" %}
-{% set title = "Sentra • Login" %}
+{% set header_title = "Login" %}
 {% block content %}
-<section class="panel">
-  <h2>Login</h2>
-  <p>This is a simple starter login. We’ll replace with Discord OAuth later.</p>
 
-  <form method="post" class="form">
-    <label>Username</label>
-    <input name="username" placeholder="Type your name" autocomplete="off" />
-    <button class="btn primary" type="submit">Login</button>
-  </form>
-</section>
+<div class="center">
+  <div class="panel">
+    <div class="panel-title">Access Terminal</div>
+    <p class="muted">Type a username. This is a demo login (real auth comes later).</p>
+
+    <form method="POST" class="form">
+      <label>Username</label>
+      <input name="username" placeholder="husseinalavi123-collab" autocomplete="off" />
+      <button class="btn full" type="submit">Continue</button>
+    </form>
+
+    <div class="muted tiny">
+      Tip: Press <b>Ctrl/Cmd + K</b> for Command Center.
+    </div>
+  </div>
+</div>
+
 {% endblock %}

@@ -1,99 +1,96 @@
 {% extends "base.html" %}
 {% set header_title = "Overview" %}
+
 {% block content %}
 
 <div class="stats">
-  <div class="stat">
-    <div class="stat-label">Servers</div>
-    <div class="stat-value">{{ stats.servers }}</div>
+  <div class="stat neon">
+    <div class="label">Servers</div>
+    <div class="value"><span class="count" data-target="{{ stats.servers }}">0</span></div>
+    <div class="muted tiny">Connected guilds</div>
   </div>
-  <div class="stat">
-    <div class="stat-label">Members</div>
-    <div class="stat-value">{{ stats.members }}</div>
+  <div class="stat neon">
+    <div class="label">Members</div>
+    <div class="value"><span class="count" data-target="{{ stats.members }}">0</span></div>
+    <div class="muted tiny">Tracked users</div>
   </div>
-  <div class="stat">
-    <div class="stat-label">Reports today</div>
-    <div class="stat-value">{{ stats.reports_today }}</div>
+  <div class="stat neon">
+    <div class="label">Reports</div>
+    <div class="value"><span class="count" data-target="{{ stats.reports_today }}">0</span></div>
+    <div class="muted tiny">Today</div>
   </div>
-  <div class="stat">
-    <div class="stat-label">Tickets open</div>
-    <div class="stat-value">{{ stats.tickets_open }}</div>
+  <div class="stat neon">
+    <div class="label">Tickets</div>
+    <div class="value"><span class="count" data-target="{{ stats.tickets_open }}">0</span></div>
+    <div class="muted tiny">Open</div>
   </div>
-  <div class="stat">
-    <div class="stat-label">Latency</div>
-    <div class="stat-value">{{ stats.latency_ms }}ms</div>
+  <div class="stat neon">
+    <div class="label">Latency</div>
+    <div class="value"><span class="count" data-target="{{ stats.latency_ms }}">0</span>ms</div>
+    <div class="muted tiny">Heartbeat</div>
   </div>
 </div>
 
-<div class="grid grid-2">
-  <div class="card">
-    <div class="card-title">Quick actions</div>
+<div class="grid2">
+  <div class="card big">
+    <div class="cardhead">
+      <div class="cardtitle">Weekly Joins</div>
+      <div class="muted tiny">Animated chart (not fake bars)</div>
+    </div>
+    <div class="chartbox">
+      <canvas id="joinsChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card big">
+    <div class="cardhead">
+      <div class="cardtitle">Quick Actions</div>
+      <div class="muted tiny">These open dialogs like Discord</div>
+    </div>
+
     <div class="actions">
-      <button class="btn btn-ghost" type="button">Create invite</button>
-      <button class="btn btn-ghost" type="button">Sync roles</button>
-      <button class="btn btn-ghost" type="button">Run audit</button>
-      <button class="btn btn-ghost" type="button">Post announcement</button>
+      <button class="btn ghost" data-action="announce">Post announcement</button>
+      <button class="btn ghost" data-action="audit">Run audit</button>
+      <button class="btn ghost" data-action="sync">Sync roles</button>
+      <button class="btn ghost" data-action="invite">Create invite</button>
     </div>
-    <div class="muted small">These are UI-only for now. We can wire them later.</div>
-  </div>
 
-  <div class="card">
-    <div class="card-title">Weekly joins</div>
-    <div class="bar-chart">
-      {% for v in weekly_join %}
-        <div class="bar" style="height: {{ (v * 3) }}px" title="{{ v }} joins"></div>
-      {% endfor %}
-    </div>
-    <div class="muted small">Fake data, real dopamine.</div>
+    <div class="muted tiny">Pro tip: Ctrl/Cmd + K opens Command Center.</div>
   </div>
 </div>
 
-<div class="grid grid-2">
+<div class="grid2">
   <div class="card">
-    <div class="card-title">Servers</div>
+    <div class="cardhead">
+      <div class="cardtitle">Servers</div>
+      <a class="link" href="{{ url_for('servers') }}">View all →</a>
+    </div>
+
     <div class="table">
       <div class="row head">
         <div>Name</div><div>Region</div><div>Status</div><div>Members</div><div>Alerts</div>
       </div>
       {% for s in servers %}
       <div class="row">
-        <div><strong>{{ s.name }}</strong></div>
+        <div><b>{{ s.name }}</b></div>
         <div class="muted">{{ s.region }}</div>
-        <div>
-          <span class="pill {{ 'pill-ok' if s.status == 'Online' else 'pill-warn' }}">{{ s.status }}</span>
-        </div>
+        <div><span class="pill {{ 'ok' if s.status == 'Online' else 'warn' }}">{{ s.status }}</span></div>
         <div>{{ s.members }}</div>
-        <div>
-          <span class="pill {{ 'pill-ok' if s.alerts == 0 else 'pill-warn' }}">{{ s.alerts }}</span>
-        </div>
+        <div><span class="pill {{ 'ok' if s.alerts == 0 else 'warn' }}">{{ s.alerts }}</span></div>
       </div>
       {% endfor %}
     </div>
-    <a class="link" href="{{ url_for('servers') }}">View all servers →</a>
   </div>
 
   <div class="card">
-    <div class="card-title">Moderation load</div>
-    <div class="splitbars">
-      {% for k, v in moderation_load.items() %}
-        <div class="splitbar">
-          <div class="splitbar-label">{{ k }}</div>
-          <div class="splitbar-track">
-            <div class="splitbar-fill" style="width: {{ v }}%"></div>
-          </div>
-          <div class="splitbar-num muted">{{ v }}%</div>
-        </div>
-      {% endfor %}
+    <div class="cardhead">
+      <div class="cardtitle">Activity Feed</div>
+      <div class="muted tiny">Live-ish with animation</div>
     </div>
-  </div>
-</div>
 
-<div class="grid grid-2">
-  <div class="card">
-    <div class="card-title">Recent activity</div>
-    <div class="list">
+    <div class="feed">
       {% for a in activity %}
-      <div class="list-row">
+      <div class="feedrow">
         <div class="time muted">{{ a.time }}</div>
         <div class="tag">{{ a.tag }}</div>
         <div class="text">{{ a.text }}</div>
@@ -101,27 +98,14 @@
       {% endfor %}
     </div>
   </div>
-
-  <div class="card">
-    <div class="card-title">Moderation queue</div>
-    <div class="table">
-      <div class="row head">
-        <div>ID</div><div>Type</div><div>Server</div><div>Priority</div><div>Status</div>
-      </div>
-      {% for r in reports %}
-      <div class="row">
-        <div><strong>{{ r.id }}</strong></div>
-        <div>{{ r.type }}</div>
-        <div class="muted">{{ r.server }}</div>
-        <div>
-          <span class="pill {{ 'pill-bad' if r.priority == 'High' else 'pill-warn' if r.priority == 'Medium' else 'pill-ok' }}">{{ r.priority }}</span>
-        </div>
-        <div class="muted">{{ r.status }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    <a class="link" href="{{ url_for('reports') }}">Open reports center →</a>
-  </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // counters
+  window.SENTRA_PAGE = "dashboard";
+  window.SENTRA_WEEKLY = {{ weekly_join|tojson }};
+</script>
 {% endblock %}

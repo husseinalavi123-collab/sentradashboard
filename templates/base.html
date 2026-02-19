@@ -6,56 +6,115 @@
   <title>{{ title if title else "Sentra Dashboard" }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-  <div class="app-shell">
+  <!-- Cyber background -->
+  <div class="bg">
+    <canvas id="particles"></canvas>
+    <div class="gridlines"></div>
+    <div class="glow"></div>
+  </div>
+
+  <!-- Toasts -->
+  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Command palette (Ctrl/Cmd + K) -->
+  <div id="cmdk" class="cmdk hidden" role="dialog" aria-modal="true">
+    <div class="cmdk-backdrop" data-close-cmdk></div>
+    <div class="cmdk-panel">
+      <div class="cmdk-head">
+        <div class="cmdk-title">Command Center</div>
+        <div class="cmdk-hint">Ctrl/Cmd + K</div>
+      </div>
+      <div class="cmdk-search">
+        <span class="cmdk-icon">⌕</span>
+        <input id="cmdkInput" placeholder="Search pages, actions…" autocomplete="off" />
+        <button class="iconbtn" data-close-cmdk title="Close">✕</button>
+      </div>
+      <div id="cmdkList" class="cmdk-list" role="listbox"></div>
+      <div class="cmdk-foot">
+        <div class="muted">Enter to run • Esc to close</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal (Discord-ish dialog) -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <div class="modal-panel">
+      <div class="modal-titlebar">
+        <div id="modalTitle" class="modal-title">Modal</div>
+        <button class="iconbtn" data-close-modal title="Close">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" data-close-modal>Cancel</button>
+        <button id="modalConfirm" class="btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell">
     <aside class="sidebar">
       <div class="brand">
         <div class="logo"></div>
-        <div class="brand-text">
-          <div class="brand-name">Sentra</div>
-          <div class="brand-sub">Control Panel</div>
+        <div class="brandtext">
+          <div class="name">SENTRA</div>
+          <div class="sub">NEON CONTROL PANEL</div>
         </div>
       </div>
 
       <nav class="nav">
-        <a class="nav-item" href="{{ url_for('dashboard') }}">🏠 Overview</a>
-        <a class="nav-item" href="{{ url_for('servers') }}">🖥️ Servers</a>
-        <a class="nav-item" href="{{ url_for('reports') }}">🛡️ Reports</a>
-        <a class="nav-item" href="{{ url_for('settings') }}">⚙️ Settings</a>
+        <a class="navitem" href="{{ url_for('dashboard') }}">
+          <span class="navdot"></span> Overview
+        </a>
+        <a class="navitem" href="{{ url_for('servers') }}">
+          <span class="navdot"></span> Servers
+        </a>
+        <a class="navitem" href="{{ url_for('reports') }}">
+          <span class="navdot"></span> Reports
+        </a>
+        <a class="navitem" href="{{ url_for('settings') }}">
+          <span class="navdot"></span> Settings
+        </a>
       </nav>
 
-      <div class="sidebar-footer">
+      <div class="sidebottom">
         {% if user %}
-          <div class="user-pill">
+          <div class="usercard">
             <div class="avatar">{{ (user[0] if user else "U")|upper }}</div>
-            <div class="user-meta">
-              <div class="user-name">{{ user }}</div>
-              <div class="user-role">Owner</div>
+            <div class="umeta">
+              <div class="uname">{{ user }}</div>
+              <div class="urole">Owner</div>
             </div>
           </div>
-          <a class="btn btn-ghost" href="{{ url_for('logout') }}">Logout</a>
+          <a class="btn ghost full" href="{{ url_for('logout') }}">Logout</a>
         {% else %}
-          <a class="btn" href="{{ url_for('login') }}">Login</a>
+          <a class="btn full" href="{{ url_for('login') }}">Login</a>
         {% endif %}
+
+        <button class="btn ghost full" id="openCmdk">Command Center</button>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div class="topbar-left">
-          <div class="page-title">{{ header_title if header_title else "Dashboard" }}</div>
+        <div class="left">
+          <div class="pagetitle">{{ header_title if header_title else "Dashboard" }}</div>
           {% if now %}<div class="muted">{{ now }}</div>{% endif %}
         </div>
 
-        <div class="topbar-right">
-          <form class="search" onsubmit="return false;">
-            <input placeholder="Search servers, users, reports…" />
-            <button type="button">⌕</button>
-          </form>
+        <div class="right">
+          <button class="chip" id="notifyBtn" title="Demo notification">
+            <span class="pulse"></span> Alerts
+          </button>
+
+          <button class="chip" id="openModalBtn" title="Demo dialog">
+            Dialog
+          </button>
 
           <div class="chip status">
-            <span class="dot"></span>
-            Online
+            <span class="dot"></span> Online
           </div>
         </div>
       </header>
@@ -63,9 +122,9 @@
       <section class="content">
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="flash-wrap">
+            <div class="flashwrap">
               {% for category, msg in messages %}
-                <div class="flash flash-{{ category }}">{{ msg }}</div>
+                <div class="flash {{ category }}">{{ msg }}</div>
               {% endfor %}
             </div>
           {% endif %}
@@ -75,9 +134,13 @@
       </section>
 
       <footer class="footer">
-        Sentra • built locally • not a production server • but hey, it’s pretty
+        Built with neon and questionable decisions • Sentra
       </footer>
     </main>
   </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

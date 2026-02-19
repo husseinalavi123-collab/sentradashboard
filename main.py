@@ -163,6 +163,13 @@ def logout():
     session.clear()
     return redirect(url_for("landing"))
 
+@app.get("/envcheck")
+def envcheck():
+    return {
+        "DISCORD_CLIENT_ID": bool(os.environ.get("DISCORD_CLIENT_ID")),
+        "DISCORD_CLIENT_SECRET": bool(os.environ.get("DISCORD_CLIENT_SECRET")),
+        "DISCORD_REDIRECT_URI": os.environ.get("DISCORD_REDIRECT_URI", ""),
+    }
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,32 +1,28 @@
 {% extends "base.html" %}
-{% set title = "Sentra • Home" %}
+{% set header_title = "Welcome" %}
 {% block content %}
-<section class="hero">
-  <h1>Sentra Dashboard</h1>
-  <p>A clean starter dashboard you can deploy for free and build into something real.</p>
+<div class="hero">
+  <h1>Sentra Control Panel</h1>
+  <p class="muted">A clean dashboard for Discord communities. Manage servers, moderation, and activity without losing your mind.</p>
 
   <div class="hero-actions">
-    {% if user %}
-      <a class="btn primary" href="{{ url_for('dashboard') }}">Open Dashboard</a>
-      <a class="btn" href="{{ url_for('logout') }}">Logout</a>
-    {% else %}
-      <a class="btn primary" href="{{ url_for('login') }}">Login</a>
-    {% endif %}
+    <a class="btn" href="{{ url_for('login') }}">Open Dashboard</a>
+    <div class="mini-note">No accounts. No database. Just vibes.</div>
   </div>
 
-  <div class="cards">
+  <div class="grid grid-3">
     <div class="card">
-      <h3>Fast</h3>
-      <p>Loads instantly. No OAuth chaos yet.</p>
+      <div class="card-title">Fast setup</div>
+      <div class="muted">Login, view stats, deploy free.</div>
     </div>
     <div class="card">
-      <h3>Deployable</h3>
-      <p>Works on Render free tier.</p>
+      <div class="card-title">Gaming-first</div>
+      <div class="muted">Servers, raids, and queue tools.</div>
     </div>
     <div class="card">
-      <h3>Expandable</h3>
-      <p>Add Discord login later.</p>
+      <div class="card-title">Staff controls</div>
+      <div class="muted">Reports + activity tracking UI.</div>
     </div>
   </div>
-</section>
+</div>
 {% endblock %}

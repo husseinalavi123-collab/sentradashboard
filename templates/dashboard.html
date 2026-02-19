@@ -1,18 +1,8 @@
 {% extends "base.html" %}
-{% set title = "Sentra • Dashboard" %}
+{% set header_title = "Overview" %}
 {% block content %}
-<section class="dash-head">
-  <div>
-    <h1>Dashboard</h1>
-    <p>Welcome, <strong>{{ user }}</strong>.</p>
-  </div>
-  <div class="status">
-    <span class="dot"></span>
-    <span>{{ stats.uptime }}</span>
-  </div>
-</section>
 
-<section class="grid">
+<div class="stats">
   <div class="stat">
     <div class="stat-label">Servers</div>
     <div class="stat-value">{{ stats.servers }}</div>
@@ -22,20 +12,116 @@
     <div class="stat-value">{{ stats.members }}</div>
   </div>
   <div class="stat">
-    <div class="stat-label">Reports Today</div>
+    <div class="stat-label">Reports today</div>
     <div class="stat-value">{{ stats.reports_today }}</div>
   </div>
-</section>
-
-<section class="panel">
-  <h2>Recent Activity</h2>
-  <div class="list">
-    {% for item in activity %}
-      <div class="list-row">
-        <div class="time">{{ item.time }}</div>
-        <div class="text">{{ item.text }}</div>
-      </div>
-    {% endfor %}
+  <div class="stat">
+    <div class="stat-label">Tickets open</div>
+    <div class="stat-value">{{ stats.tickets_open }}</div>
   </div>
-</section>
+  <div class="stat">
+    <div class="stat-label">Latency</div>
+    <div class="stat-value">{{ stats.latency_ms }}ms</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title">Quick actions</div>
+    <div class="actions">
+      <button class="btn btn-ghost" type="button">Create invite</button>
+      <button class="btn btn-ghost" type="button">Sync roles</button>
+      <button class="btn btn-ghost" type="button">Run audit</button>
+      <button class="btn btn-ghost" type="button">Post announcement</button>
+    </div>
+    <div class="muted small">These are UI-only for now. We can wire them later.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Weekly joins</div>
+    <div class="bar-chart">
+      {% for v in weekly_join %}
+        <div class="bar" style="height: {{ (v * 3) }}px" title="{{ v }} joins"></div>
+      {% endfor %}
+    </div>
+    <div class="muted small">Fake data, real dopamine.</div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title">Servers</div>
+    <div class="table">
+      <div class="row head">
+        <div>Name</div><div>Region</div><div>Status</div><div>Members</div><div>Alerts</div>
+      </div>
+      {% for s in servers %}
+      <div class="row">
+        <div><strong>{{ s.name }}</strong></div>
+        <div class="muted">{{ s.region }}</div>
+        <div>
+          <span class="pill {{ 'pill-ok' if s.status == 'Online' else 'pill-warn' }}">{{ s.status }}</span>
+        </div>
+        <div>{{ s.members }}</div>
+        <div>
+          <span class="pill {{ 'pill-ok' if s.alerts == 0 else 'pill-warn' }}">{{ s.alerts }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <a class="link" href="{{ url_for('servers') }}">View all servers →</a>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Moderation load</div>
+    <div class="splitbars">
+      {% for k, v in moderation_load.items() %}
+        <div class="splitbar">
+          <div class="splitbar-label">{{ k }}</div>
+          <div class="splitbar-track">
+            <div class="splitbar-fill" style="width: {{ v }}%"></div>
+          </div>
+          <div class="splitbar-num muted">{{ v }}%</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid grid-2">
+  <div class="card">
+    <div class="card-title">Recent activity</div>
+    <div class="list">
+      {% for a in activity %}
+      <div class="list-row">
+        <div class="time muted">{{ a.time }}</div>
+        <div class="tag">{{ a.tag }}</div>
+        <div class="text">{{ a.text }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Moderation queue</div>
+    <div class="table">
+      <div class="row head">
+        <div>ID</div><div>Type</div><div>Server</div><div>Priority</div><div>Status</div>
+      </div>
+      {% for r in reports %}
+      <div class="row">
+        <div><strong>{{ r.id }}</strong></div>
+        <div>{{ r.type }}</div>
+        <div class="muted">{{ r.server }}</div>
+        <div>
+          <span class="pill {{ 'pill-bad' if r.priority == 'High' else 'pill-warn' if r.priority == 'Medium' else 'pill-ok' }}">{{ r.priority }}</span>
+        </div>
+        <div class="muted">{{ r.status }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <a class="link" href="{{ url_for('reports') }}">Open reports center →</a>
+  </div>
+</div>
+
 {% endblock %}

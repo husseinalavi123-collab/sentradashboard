@@ -2,43 +2,82 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{{ title if title else "Sentra" }}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title if title else "Sentra Dashboard" }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <div class="brand-title">Sentra</div>
-        <div class="brand-sub">Gaming Control Panel</div>
-      </div>
-    </div>
-    <nav class="nav">
-      <a href="{{ url_for('home') }}">Home</a>
-      {% if user %}
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a class="pill" href="{{ url_for('logout') }}">Logout</a>
-      {% else %}
-        <a class="pill" href="{{ url_for('login') }}">Login</a>
-      {% endif %}
-    </nav>
-  </header>
-
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="alerts">
-          {% for category, msg in messages %}
-            <div class="alert {{ category }}">{{ msg }}</div>
-          {% endfor %}
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="brand-text">
+          <div class="brand-name">Sentra</div>
+          <div class="brand-sub">Control Panel</div>
         </div>
-      {% endif %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
+      </div>
 
-  <footer class="footer">Sentra • Dashboard starter</footer>
+      <nav class="nav">
+        <a class="nav-item" href="{{ url_for('dashboard') }}">🏠 Overview</a>
+        <a class="nav-item" href="{{ url_for('servers') }}">🖥️ Servers</a>
+        <a class="nav-item" href="{{ url_for('reports') }}">🛡️ Reports</a>
+        <a class="nav-item" href="{{ url_for('settings') }}">⚙️ Settings</a>
+      </nav>
+
+      <div class="sidebar-footer">
+        {% if user %}
+          <div class="user-pill">
+            <div class="avatar">{{ (user[0] if user else "U")|upper }}</div>
+            <div class="user-meta">
+              <div class="user-name">{{ user }}</div>
+              <div class="user-role">Owner</div>
+            </div>
+          </div>
+          <a class="btn btn-ghost" href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+          <a class="btn" href="{{ url_for('login') }}">Login</a>
+        {% endif %}
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="page-title">{{ header_title if header_title else "Dashboard" }}</div>
+          {% if now %}<div class="muted">{{ now }}</div>{% endif %}
+        </div>
+
+        <div class="topbar-right">
+          <form class="search" onsubmit="return false;">
+            <input placeholder="Search servers, users, reports…" />
+            <button type="button">⌕</button>
+          </form>
+
+          <div class="chip status">
+            <span class="dot"></span>
+            Online
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-wrap">
+              {% for category, msg in messages %}
+                <div class="flash flash-{{ category }}">{{ msg }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </section>
+
+      <footer class="footer">
+        Sentra • built locally • not a production server • but hey, it’s pretty
+      </footer>
+    </main>
+  </div>
 </body>
 </html>

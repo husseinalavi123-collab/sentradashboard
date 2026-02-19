@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% set header_title = "Reports" %}
+{% block content %}
+<div class="card">
+  <div class="card-title">Reports center</div>
+  <p class="muted">Queue + statuses. Next step is wiring this to a database when you feel emotionally ready.</p>
+
+  <div class="table">
+    <div class="row head">
+      <div>ID</div><div>Type</div><div>Server</div><div>Priority</div><div>Status</div>
+    </div>
+    {% for r in reports %}
+    <div class="row">
+      <div><strong>{{ r.id }}</strong></div>
+      <div>{{ r.type }}</div>
+      <div class="muted">{{ r.server }}</div>
+      <div>
+        <span class="pill {{ 'pill-bad' if r.priority == 'High' else 'pill-warn' if r.priority == 'Medium' else 'pill-ok' }}">{{ r.priority }}</span>
+      </div>
+      <div class="muted">{{ r.status }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

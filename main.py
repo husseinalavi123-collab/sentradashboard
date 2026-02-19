@@ -4,23 +4,23 @@ from functools import wraps
 from urllib.parse import urlencode
 
 import requests
-from flask import (
-    Flask,
-    render_template,
-    redirect,
-    url_for,
-    session,
-    request,
-    flash,
-    jsonify,
-)
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify
+
+# If you're behind a proxy (Render), this helps Flask understand HTTPS correctly.
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
-# Secret key for sessions (Render should provide SECRET_KEY; fallback is dev-only)
+# IMPORTANT: set SECRET_KEY on Render so sessions don't randomly break
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 
-# Discord OAuth env vars (Render)
+# Safer cookie defaults for OAuth redirects
+app.config.update(
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=True,  # you're on https on Render
+)
+
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET", "").strip()
 DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI", "").strip()
@@ -36,15 +36,13 @@ def login_required(view_func):
     @wraps(view_func)
     def wrapped(*args, **kwargs):
         if not session.get("discord_user"):
-            return redirect(url_for("login"))
+            return redirect(url_for("login_page"))
         return view_func(*args, **kwargs)
-
     return wrapped
 
 
 @app.get("/")
 def landing():
-    # Landing page
     return render_template(
         "index.html",
         user=session.get("discord_user"),
@@ -52,20 +50,25 @@ def landing():
     )
 
 
+# IMPORTANT: /login is now a PAGE, not an auto-redirect into Discord.
 @app.get("/login")
-def login():
-    # If OAuth isn't configured, show login page with the warning message
+def login_page():
+    error = session.pop("last_oauth_error", None)
     if not oauth_configured():
-        return render_template(
-            "login.html",
-            oauth_ready=False,
-            error=(
-                "Discord OAuth not configured yet.\n"
-                "Add these Render env vars: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI."
-            ),
+        error = (
+            "Discord OAuth not configured yet.\n"
+            "Add these Render env vars: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI."
         )
+    return render_template("login.html", oauth_ready=oauth_configured(), error=error)
 
-    # Start Discord OAuth flow
+
+# This is the only route that starts OAuth.
+@app.get("/oauth/discord")
+def oauth_start():
+    if not oauth_configured():
+        session["last_oauth_error"] = "OAuth env vars missing on the server."
+        return redirect(url_for("login_page"))
+
     state = secrets.token_urlsafe(24)
     session["oauth_state"] = state
 
@@ -75,7 +78,8 @@ def login():
         "response_type": "code",
         "scope": "identify guilds",
         "state": state,
-        "prompt": "none",
+        # DO NOT use prompt=none. It causes login_required loops.
+        "prompt": "consent",
     }
     auth_url = f"https://discord.com/oauth2/authorize?{urlencode(params)}"
     return redirect(auth_url)
@@ -83,22 +87,27 @@ def login():
 
 @app.get("/callback")
 def callback():
-    # Discord redirects here after login
-    if not oauth_configured():
-        flash("OAuth not configured on the server.", "error")
-        return redirect(url_for("login"))
+    # If Discord returns an error (very common), STOP looping and show it.
+    err = request.args.get("error")
+    err_desc = request.args.get("error_description")
+    if err:
+        session["last_oauth_error"] = f"Discord returned OAuth error: {err}. {err_desc or ''}".strip()
+        return redirect(url_for("login_page"))
 
     code = request.args.get("code", "")
     state = request.args.get("state", "")
     expected_state = session.get("oauth_state", "")
 
     if not code:
-        flash("Missing OAuth code from Discord.", "error")
-        return redirect(url_for("login"))
+        session["last_oauth_error"] = "No OAuth code returned by Discord. (Usually redirect URI mismatch.)"
+        return redirect(url_for("login_page"))
 
     if not expected_state or state != expected_state:
-        flash("OAuth state mismatch. Please try again.", "error")
-        return redirect(url_for("login"))
+        session["last_oauth_error"] = (
+            "OAuth state mismatch (session cookie not sticking). "
+            "Try a hard refresh or Incognito, and make sure SECRET_KEY is set on Render."
+        )
+        return redirect(url_for("login_page"))
 
     # Exchange code for token
     token_url = f"{DISCORD_API_BASE}/oauth2/token"
@@ -113,24 +122,23 @@ def callback():
 
     token_resp = requests.post(token_url, data=data, headers=headers, timeout=20)
     if token_resp.status_code != 200:
-        flash("Failed to get token from Discord.", "error")
-        return redirect(url_for("login"))
+        session["last_oauth_error"] = f"Token exchange failed: HTTP {token_resp.status_code}"
+        return redirect(url_for("login_page"))
 
     token_json = token_resp.json()
     access_token = token_json.get("access_token")
     if not access_token:
-        flash("No access token returned by Discord.", "error")
-        return redirect(url_for("login"))
+        session["last_oauth_error"] = "No access_token returned by Discord."
+        return redirect(url_for("login_page"))
 
-    # Fetch user + guilds
     auth_headers = {"Authorization": f"Bearer {access_token}"}
 
     user_resp = requests.get(f"{DISCORD_API_BASE}/users/@me", headers=auth_headers, timeout=20)
     guilds_resp = requests.get(f"{DISCORD_API_BASE}/users/@me/guilds", headers=auth_headers, timeout=20)
 
     if user_resp.status_code != 200:
-        flash("Could not fetch Discord user.", "error")
-        return redirect(url_for("login"))
+        session["last_oauth_error"] = f"Could not fetch Discord user: HTTP {user_resp.status_code}"
+        return redirect(url_for("login_page"))
 
     user = user_resp.json()
     guilds = guilds_resp.json() if guilds_resp.status_code == 200 else []
@@ -143,7 +151,6 @@ def callback():
     }
     session["discord_guilds"] = guilds
 
-    # Cleanup one-time state
     session.pop("oauth_state", None)
 
     return redirect(url_for("dashboard"))
@@ -161,23 +168,20 @@ def dashboard():
     user = session.get("discord_user")
     guilds = session.get("discord_guilds", [])
 
-    # Real-ish stats (based on actual guild list you have access to)
     stats = {
         "servers": len(guilds),
-        "members": "—",        # requires bot + privileged intents later
-        "reports_today": "—",  # will be real later once bot reports exist
+        "members": "—",
+        "reports_today": "—",
         "uptime": "Online",
     }
 
     recent_activity = [
         {"time": "Just now", "text": "Dashboard loaded successfully."},
         {"time": "A moment ago", "text": "Discord OAuth login completed."},
-        {"time": "Earlier", "text": "Render deployment survived another day."},
     ]
 
-    # Show a few guilds on the dashboard
     guild_preview = []
-    for g in guilds[:6]:
+    for g in guilds[:8]:
         guild_preview.append(
             {
                 "id": g.get("id"),
@@ -197,7 +201,6 @@ def dashboard():
     )
 
 
-# These routes exist so your templates can safely url_for() them (no more BuildError)
 @app.get("/servers")
 @login_required
 def servers():
@@ -216,7 +219,6 @@ def settings():
     return render_template("settings.html", user=session.get("discord_user"))
 
 
-# Debug helper: shows which env vars are detected (no secrets leaked)
 @app.get("/envcheck")
 def envcheck():
     return jsonify(
@@ -226,6 +228,7 @@ def envcheck():
             "has_client_secret": bool(DISCORD_CLIENT_SECRET),
             "has_redirect_uri": bool(DISCORD_REDIRECT_URI),
             "redirect_uri_value": DISCORD_REDIRECT_URI if DISCORD_REDIRECT_URI else None,
+            "note": "If oauth_configured is true but login fails, your Discord redirect URL probably doesn't match exactly.",
         }
     )
 

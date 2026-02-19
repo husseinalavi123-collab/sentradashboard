@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: sentra-dashboard
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true

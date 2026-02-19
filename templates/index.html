@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set title = "Sentra • Home" %}
+{% block content %}
+<section class="hero">
+  <h1>Sentra Dashboard</h1>
+  <p>A clean starter dashboard you can deploy for free and build into something real.</p>
+
+  <div class="hero-actions">
+    {% if user %}
+      <a class="btn primary" href="{{ url_for('dashboard') }}">Open Dashboard</a>
+      <a class="btn" href="{{ url_for('logout') }}">Logout</a>
+    {% else %}
+      <a class="btn primary" href="{{ url_for('login') }}">Login</a>
+    {% endif %}
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Fast</h3>
+      <p>Loads instantly. No OAuth chaos yet.</p>
+    </div>
+    <div class="card">
+      <h3>Deployable</h3>
+      <p>Works on Render free tier.</p>
+    </div>
+    <div class="card">
+      <h3>Expandable</h3>
+      <p>Add Discord login later.</p>
+    </div>
+  </div>
+</section>
+{% endblock %}

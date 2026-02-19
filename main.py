@@ -160,6 +160,30 @@ def dashboard():
     user = session.get("discord_user")
     return render_template("dashboard.html", user=user)
 
+@app.get("/servers")
+@login_required
+def servers():
+    user = session.get("discord_user")
+    return render_template("servers.html", user=user)
+
+@app.get("/reports")
+@login_required
+def reports():
+    user = session.get("discord_user")
+    return render_template("reports.html", user=user)
+
+@app.get("/settings")
+@login_required
+def settings():
+    user = session.get("discord_user")
+    return render_template("settings.html", user=user)
+
+@app.get("/server/<guild_id>")
+@login_required
+def server_config(guild_id):
+    user = session.get("discord_user")
+    return render_template("server.html", user=user, guild_id=guild_id)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

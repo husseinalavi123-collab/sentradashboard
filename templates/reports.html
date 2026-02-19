@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <button class="btn small block" data-sidebar-toggle type="button">Toggle Sidebar</button>
+
+      <h4>Navigation</h4>
+      <a class="side-item" href="{{ url_for('overview') }}"><span class="label">🏠 Overview</span><span class="badge">LIVE</span></a>
+      <a class="side-item" href="{{ url_for('servers') }}"><span class="label">🖥 Servers</span><span class="badge">2</span></a>
+      <a class="side-item active" href="{{ url_for('reports') }}"><span class="label">🧾 Reports</span><span class="badge">{{ report_events|length }}</span></a>
+      <a class="side-item" href="{{ url_for('settings') }}"><span class="label">⚙️ Settings</span><span class="badge">CFG</span></a>
+
+      <div class="sidebar-bottom">
+        <form method="post" action="{{ url_for('do_action', action_name='report') }}">
+          <button class="btn block primary" type="submit">Create Test Report</button>
+        </form>
+        <a class="btn block danger" href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <div class="title">
+          <h2>Reports</h2>
+          <p>Only shows logged report events right now.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Report Log</h3>
+        {% if not report_events %}
+          <div class="note">No reports yet. Smash “Create Test Report”.</div>
+        {% else %}
+        <table class="table">
+          <thead>
+            <tr><th>Time</th><th>Actor</th><th>Detail</th></tr>
+          </thead>
+          <tbody>
+            {% for e in report_events %}
+            <tr>
+              <td><span class="tag">{{ e.created_at }}</span></td>
+              <td><b>{{ e.actor }}</b></td>
+              <td>{{ e.detail }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}

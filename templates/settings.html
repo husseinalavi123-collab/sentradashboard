@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <button class="btn small block" data-sidebar-toggle type="button">Toggle Sidebar</button>
+
+      <h4>Navigation</h4>
+      <a class="side-item" href="{{ url_for('overview') }}"><span class="label">🏠 Overview</span><span class="badge">LIVE</span></a>
+      <a class="side-item" href="{{ url_for('servers') }}"><span class="label">🖥 Servers</span><span class="badge">2</span></a>
+      <a class="side-item" href="{{ url_for('reports') }}"><span class="label">🧾 Reports</span><span class="badge">LOG</span></a>
+      <a class="side-item active" href="{{ url_for('settings') }}"><span class="label">⚙️ Settings</span><span class="badge">CFG</span></a>
+
+      <div class="sidebar-bottom">
+        {% if discord_ready and install_url %}
+          <a class="btn block" href="{{ install_url }}" target="_blank" rel="noreferrer">Install Bot</a>
+        {% endif %}
+        <a class="btn block danger" href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <div class="title">
+          <h2>Settings</h2>
+          <p>Server: <span class="kbd">{{ active_guild.name }}</span></p>
+        </div>
+      </div>
+
+      <form class="form" method="post" action="{{ url_for('settings_save') }}">
+        <div class="field">
+          <label>Command Prefix</label>
+          <input type="text" name="prefix" value="{{ settings.prefix }}" placeholder="!" />
+        </div>
+
+        <div class="field">
+          <label>Mod Log Channel (name or ID)</label>
+          <input type="text" name="mod_log_channel" value="{{ settings.mod_log_channel }}" placeholder="#mod-logs or 123..." />
+        </div>
+
+        <div class="field">
+          <label>Welcome Message</label>
+          <textarea name="welcome_message">{{ settings.welcome_message }}</textarea>
+        </div>
+
+        <div class="switches">
+          <div class="switch">
+            <div class="meta"><b>Automod: Spam</b><small>Blocks spam patterns</small></div>
+            <div class="toggle">
+              <input id="automod_spam" type="checkbox" name="automod_spam" {% if settings.automod_spam %}checked{% endif %}>
+              <label for="automod_spam" class="slider"></label>
+            </div>
+          </div>
+
+          <div class="switch">
+            <div class="meta"><b>Automod: Links</b><small>Blocks suspicious links</small></div>
+            <div class="toggle">
+              <input id="automod_links" type="checkbox" name="automod_links" {% if settings.automod_links %}checked{% endif %}>
+              <label for="automod_links" class="slider"></label>
+            </div>
+          </div>
+
+          <div class="switch">
+            <div class="meta"><b>Automod: Caps</b><small>Blocks caps spam</small></div>
+            <div class="toggle">
+              <input id="automod_caps" type="checkbox" name="automod_caps" {% if settings.automod_caps %}checked{% endif %}>
+              <label for="automod_caps" class="slider"></label>
+            </div>
+          </div>
+
+          <div class="switch">
+            <div class="meta"><b>Block NSFW</b><small>Basic content gating</small></div>
+            <div class="toggle">
+              <input id="block_nsfw" type="checkbox" name="block_nsfw" {% if settings.block_nsfw %}checked{% endif %}>
+              <label for="block_nsfw" class="slider"></label>
+            </div>
+          </div>
+
+          <div class="switch">
+            <div class="meta"><b>Anti-Raid</b><small>Rate limit joins (future bot)</small></div>
+            <div class="toggle">
+              <input id="anti_raid" type="checkbox" name="anti_raid" {% if settings.anti_raid %}checked{% endif %}>
+              <label for="anti_raid" class="slider"></label>
+            </div>
+          </div>
+
+          <div class="switch">
+            <div class="meta"><b>Welcome Enabled</b><small>Sends welcome message (future bot)</small></div>
+            <div class="toggle">
+              <input id="welcome_enabled" type="checkbox" name="welcome_enabled" {% if settings.welcome_enabled %}checked{% endif %}>
+              <label for="welcome_enabled" class="slider"></label>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn primary" type="submit">Save Settings</button>
+      </form>
+
+      <div class="note">
+        Heads up: on Render free tier, SQLite can reset if the container rebuilds. This is fine for prototype.
+        Later we move to Postgres.
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}

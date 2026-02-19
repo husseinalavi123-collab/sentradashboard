@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block body %}
+<section class="hero">
+  <div class="container">
+    <h1>Login</h1>
+    <p>Authenticate with Discord so you can pick a server and configure Sentra.</p>
+
+    <div class="hero-actions">
+      {% if discord_ready %}
+        <a class="btn primary" href="{{ auth_url }}">Login with Discord</a>
+      {% else %}
+        <div class="note">
+          Discord OAuth not configured yet.<br>
+          Add these Render env vars: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI.
+        </div>
+      {% endif %}
+      <a class="btn" href="{{ url_for('landing') }}">Back</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

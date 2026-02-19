@@ -1,24 +1,57 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en" data-theme="neo">
 <head>
-    <title>Sentra</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title if title else "Sentra Dashboard" }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="stars"></div>
 
-<div id="particles"></div>
-
-<nav class="navbar">
-    <div class="logo">SENTRA</div>
-    <div class="nav-links">
-        <a href="/">Home</a>
-        <a href="/login">Dashboard</a>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="toasts">
+      {% for category, msg in messages %}
+      <div class="toast {{ category }}">
+        <div class="dot"></div>
+        <div class="msg">
+          <b>{{ category|capitalize }}</b>
+          <small>{{ msg }}</small>
+        </div>
+      </div>
+      {% endfor %}
     </div>
-</nav>
+    {% endif %}
+  {% endwith %}
 
-{% block content %}{% endblock %}
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="{{ url_for('landing') }}">
+        <div class="logo"></div>
+        <span><b>SENTRA</b></span>
+      </a>
 
-<script src="{{ url_for('static', filename='particles.js') }}"></script>
-<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+      <nav class="nav">
+        <a class="pill" href="{{ url_for('landing') }}">Home</a>
+        {% if session.get("user") %}
+          <a class="pill" href="{{ url_for('guilds') }}">Servers</a>
+          <a class="pill" href="{{ url_for('overview') }}">Dashboard</a>
+          <a class="pill" href="{{ url_for('logout') }}">Logout</a>
+        {% else %}
+          <a class="pill" href="{{ url_for('login') }}">Login</a>
+        {% endif %}
+        <button class="btn small ghost" data-theme-toggle type="button">Theme</button>
+      </nav>
+    </div>
+  </header>
+
+  {% block body %}{% endblock %}
+
+  <footer class="footer">
+    Sentra • control panel prototype • “works on my machine” now sold as a product
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

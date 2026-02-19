@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container">
+  <div class="layout">
+    <aside class="sidebar">
+      <button class="btn small block" data-sidebar-toggle type="button">Toggle Sidebar</button>
+
+      <h4>Navigation</h4>
+      <a class="side-item" href="{{ url_for('overview') }}"><span class="label">🏠 Overview</span><span class="badge">LIVE</span></a>
+      <a class="side-item active" href="{{ url_for('servers') }}"><span class="label">🖥 Servers</span><span class="badge">2</span></a>
+      <a class="side-item" href="{{ url_for('reports') }}"><span class="label">🧾 Reports</span><span class="badge">LOG</span></a>
+      <a class="side-item" href="{{ url_for('settings') }}"><span class="label">⚙️ Settings</span><span class="badge">CFG</span></a>
+
+      <div class="sidebar-bottom">
+        <a class="btn block danger" href="{{ url_for('logout') }}">Logout</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <div class="title">
+          <h2>Servers</h2>
+          <p>Server context: <span class="kbd">{{ active_guild.name }}</span></p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Node Status</h3>
+        <table class="table">
+          <thead>
+            <tr><th>Name</th><th>Region</th><th>Status</th><th>Members</th><th>Alerts</th></tr>
+          </thead>
+          <tbody>
+            {% for row in server_rows %}
+            <tr>
+              <td><b>{{ row.name }}</b></td>
+              <td>{{ row.region }}</td>
+              <td>
+                {% if row.status == "Online" %}
+                  <span class="tag good">Online</span>
+                {% else %}
+                  <span class="tag warn">{{ row.status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ row.members }}</td>
+              <td>{{ row.alerts }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <div class="note">
+          This becomes real once the bot + backend exists (shards, latency, error rate). For now it’s a clean UI placeholder.
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+{% endblock %}

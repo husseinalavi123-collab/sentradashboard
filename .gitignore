@@ -1,4 +1,10 @@
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
 .venv/
+venv/
+.env
+.DS_Store
+sentra.db
+instance/

@@ -1,15 +1,42 @@
 {% extends "base.html" %}
-{% block content %}
+{% block body %}
 <section class="hero">
+  <div class="container">
     <h1>Dominate Your Gaming Server</h1>
-    <p>The next generation Discord control panel.</p>
+    <p>The next-generation Discord control panel. Install the bot, then configure everything from your dashboard.</p>
 
-    <div class="cta">
-        <a class="btn-primary" href="/login">Configure Dashboard</a>
-        <a class="btn-secondary"
-           href="https://discord.com/oauth2/authorize?client_id={{ client_id }}&scope=bot%20applications.commands&permissions=8">
-            Add to Server
-        </a>
+    <div class="hero-actions">
+      <a class="btn primary" href="{{ url_for('login') }}">Open Dashboard</a>
+
+      {% if discord_ready and install_url %}
+        <a class="btn" href="{{ install_url }}" target="_blank" rel="noreferrer">Add to Server</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Add to Server</a>
+      {% endif %}
     </div>
+
+    <div class="hero-note">
+      {% if not discord_ready %}
+        Setup required: Add DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_REDIRECT_URI on Render.
+      {% else %}
+        Discord OAuth ready. Install + login flow enabled.
+      {% endif %}
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature">
+        <h3>Server Settings</h3>
+        <p>Prefix, welcome system, automod toggles, and logs. Saved per server.</p>
+      </div>
+      <div class="feature">
+        <h3>Moderation Panel</h3>
+        <p>Actions UI now, real bot wiring later. Still tracks audit events today.</p>
+      </div>
+      <div class="feature">
+        <h3>Reports & Tickets</h3>
+        <p>Log-driven dashboard. Not random numbers pretending to be “analytics”.</p>
+      </div>
+    </div>
+  </div>
 </section>
 {% endblock %}

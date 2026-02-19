@@ -1,53 +1,28 @@
 {% extends "base.html" %}
-{% set header_title = "Welcome" %}
-{% block content %}
+{% set header_title = "Sentra" %}
 
-<section class="hero">
-  <div class="hero-left">
-    <div class="badge">TRON MODE • ENABLED</div>
-    <h1>SENTRA</h1>
-    <p class="muted">
-      A cyber-neon control panel for gaming servers. Looks expensive. Acts helpful.
-      We’ll wire real data later. For now, enjoy the vibes.
+{% block content %}
+<div class="hero">
+  <div>
+    <h1 style="margin:0 0 10px;">Sentra Dashboard</h1>
+    <p class="muted" style="max-width:720px;">
+      Dyno-style dashboard: login with Discord, pick a server you manage, configure the bot.
+      We’re building the real thing. Slowly. Like sane people.
     </p>
 
-    <div class="hero-actions">
-      <a class="btn" href="{{ url_for('login') }}">Enter Dashboard</a>
-      <button class="btn ghost" id="demoToast">Show Toast</button>
-      <button class="btn ghost" id="demoCmdk">Open Command Center</button>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+      {% if user %}
+        <a class="btn" href="{{ url_for('guilds') }}">Open Dashboard</a>
+        <a class="btn ghost" href="{{ url_for('logout') }}">Logout</a>
+      {% else %}
+        <a class="btn" href="{{ url_for('login') }}">Login with Discord</a>
+      {% endif %}
+      <a class="btn ghost" href="https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot%20applications.commands&permissions=8">Add to Server (later)</a>
     </div>
 
-    <div class="mini-grid">
-      <div class="mini-card">
-        <div class="mini-title">Realtime vibes</div>
-        <div class="muted">Animated UI + smooth motion</div>
-      </div>
-      <div class="mini-card">
-        <div class="mini-title">Gaming-first</div>
-        <div class="muted">Servers, raids, reports</div>
-      </div>
-      <div class="mini-card">
-        <div class="mini-title">Deploy-ready</div>
-        <div class="muted">Runs on Render free</div>
-      </div>
-    </div>
+    <p class="muted" style="margin-top:12px; font-size:12px;">
+      “Add to Server” link will be replaced after we finish install flow properly.
+    </p>
   </div>
-
-  <div class="hero-right">
-    <div class="holo">
-      <div class="holo-head">
-        <div class="holo-title">System Status</div>
-        <div class="pill ok">ONLINE</div>
-      </div>
-      <div class="holo-body">
-        <div class="line"><span class="k">Shard</span><span class="v">EU-WEST-01</span></div>
-        <div class="line"><span class="k">Latency</span><span class="v">42ms</span></div>
-        <div class="line"><span class="k">Incidents</span><span class="v">0</span></div>
-        <div class="line"><span class="k">Mode</span><span class="v">TRON</span></div>
-      </div>
-      <div class="scan"></div>
-    </div>
-  </div>
-</section>
-
+</div>
 {% endblock %}

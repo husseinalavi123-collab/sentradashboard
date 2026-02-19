@@ -1,136 +1,166 @@
 import os
-from datetime import datetime
+import secrets
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+
+import requests
+from flask import Flask, render_template, redirect, request, session, url_for, flash
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+
+DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
+DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
+DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
+
+DISCORD_API = "https://discord.com/api/v10"
+OAUTH_AUTHORIZE = f"{DISCORD_API}/oauth2/authorize"
+OAUTH_TOKEN = f"{DISCORD_API}/oauth2/token"
 
 
 def login_required(view_func):
     @wraps(view_func)
     def wrapped(*args, **kwargs):
-        if not session.get("user"):
-            flash("You need to log in first.", "error")
+        if not session.get("discord_user"):
             return redirect(url_for("login"))
         return view_func(*args, **kwargs)
     return wrapped
 
 
-def mock_data(user: str):
-    # Fake but believable data
-    stats = {
-        "servers": 3,
-        "members": 124,
-        "reports_today": 2,
-        "tickets_open": 4,
-        "uptime": "Online",
-        "latency_ms": 42,
+def discord_headers():
+    token = session.get("access_token")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
+def require_oauth_env():
+    missing = []
+    if not DISCORD_CLIENT_ID:
+        missing.append("DISCORD_CLIENT_ID")
+    if not DISCORD_CLIENT_SECRET:
+        missing.append("DISCORD_CLIENT_SECRET")
+    if not DISCORD_REDIRECT_URI:
+        missing.append("DISCORD_REDIRECT_URI")
+    return missing
+
+
+@app.get("/")
+def index():
+    return render_template("index.html", user=session.get("discord_user"))
+
+
+@app.get("/login")
+def login():
+    missing = require_oauth_env()
+    if missing:
+        return (
+            "Missing environment variables: " + ", ".join(missing) +
+            "<br>Set these in Render → Environment.",
+            500,
+        )
+
+    state = secrets.token_urlsafe(24)
+    session["oauth_state"] = state
+
+    params = {
+        "client_id": DISCORD_CLIENT_ID,
+        "redirect_uri": DISCORD_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "identify guilds",
+        "state": state,
+        "prompt": "none",
     }
 
-    servers = [
-        {"name": "Sentra HQ", "region": "EU-West", "status": "Online", "members": 58, "alerts": 0},
-        {"name": "Raid Zone", "region": "US-East", "status": "Online", "members": 41, "alerts": 1},
-        {"name": "Staff Lounge", "region": "EU-West", "status": "Maintenance", "members": 25, "alerts": 2},
-    ]
-
-    activity = [
-        {"time": "Just now", "tag": "SYSTEM", "text": "Dashboard loaded successfully."},
-        {"time": "3 min ago", "tag": "MOD", "text": f"{user} viewed Reports."},
-        {"time": "18 min ago", "tag": "BOT", "text": "Auto-moderation rules synced."},
-        {"time": "1 hr ago", "tag": "SECURITY", "text": "2FA reminder sent to staff."},
-    ]
-
-    reports = [
-        {"id": "R-1042", "type": "Spam", "server": "Raid Zone", "priority": "High", "status": "Open"},
-        {"id": "R-1041", "type": "Harassment", "server": "Sentra HQ", "priority": "Medium", "status": "Review"},
-        {"id": "R-1040", "type": "Raid attempt", "server": "Sentra HQ", "priority": "High", "status": "Mitigated"},
-        {"id": "R-1039", "type": "NSFW", "server": "Raid Zone", "priority": "Low", "status": "Closed"},
-    ]
-
-    # Simple “chart” values (render as bars)
-    weekly_join = [12, 18, 9, 22, 31, 14, 27]
-    moderation_load = {"Spam": 46, "Harassment": 21, "Raids": 13, "NSFW": 8, "Other": 12}
-
-    return stats, servers, activity, reports, weekly_join, moderation_load
+    # requests can build the URL but we’ll just do it manually
+    query = "&".join([f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()])
+    return redirect(f"{OAUTH_AUTHORIZE}?{query}")
 
 
-@app.route("/")
-def index():
-    if session.get("user"):
-        return redirect(url_for("dashboard"))
-    return render_template("index.html")
+@app.get("/callback")
+def callback():
+    # 1) Validate state (prevents random people forging login requests)
+    state = request.args.get("state", "")
+    if not state or state != session.get("oauth_state"):
+        return "Invalid OAuth state. Try logging in again.", 400
+
+    code = request.args.get("code", "")
+    if not code:
+        return "Missing code from Discord.", 400
+
+    # 2) Exchange code for access token
+    data = {
+        "client_id": DISCORD_CLIENT_ID,
+        "client_secret": DISCORD_CLIENT_SECRET,
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": DISCORD_REDIRECT_URI,
+    }
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+
+    token_res = requests.post(OAUTH_TOKEN, data=data, headers=headers, timeout=20)
+    if token_res.status_code != 200:
+        return f"Token exchange failed: {token_res.status_code} {token_res.text}", 400
+
+    token_json = token_res.json()
+    session["access_token"] = token_json.get("access_token")
+
+    # 3) Get user info
+    me_res = requests.get(f"{DISCORD_API}/users/@me", headers=discord_headers(), timeout=20)
+    if me_res.status_code != 200:
+        return f"Failed to fetch user: {me_res.status_code} {me_res.text}", 400
+
+    user = me_res.json()
+    session["discord_user"] = {
+        "id": user.get("id"),
+        "username": user.get("username"),
+        "global_name": user.get("global_name"),
+        "avatar": user.get("avatar"),
+    }
+
+    flash("Logged in with Discord.", "success")
+    return redirect(url_for("guilds"))
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = (request.form.get("username") or "").strip()
-        if not username:
-            flash("Type a username.", "error")
-            return redirect(url_for("login"))
+@app.get("/guilds")
+@login_required
+def guilds():
+    # Get guilds the user is in
+    res = requests.get(f"{DISCORD_API}/users/@me/guilds", headers=discord_headers(), timeout=20)
+    if res.status_code != 200:
+        return f"Failed to fetch guilds: {res.status_code} {res.text}", 400
 
-        session["user"] = username
-        flash(f"Welcome, {username}. Try not to break anything.", "success")
-        return redirect(url_for("dashboard"))
+    guilds = res.json()
 
-    return render_template("login.html")
+    # Filter to guilds where user has MANAGE_GUILD permission (0x20)
+    manageable = []
+    MANAGE_GUILD = 0x20
+
+    for g in guilds:
+        perms = int(g.get("permissions", 0))
+        if (perms & MANAGE_GUILD) == MANAGE_GUILD:
+            manageable.append({
+                "id": g["id"],
+                "name": g["name"],
+                "icon": g.get("icon"),
+            })
+
+    user = session.get("discord_user")
+    return render_template("guilds.html", user=user, guilds=manageable)
 
 
-@app.route("/logout")
+@app.get("/logout")
 def logout():
     session.clear()
     flash("Logged out.", "success")
     return redirect(url_for("index"))
 
 
-@app.route("/dashboard")
+# Placeholder “dashboard” route (you can keep yours too)
+@app.get("/dashboard")
 @login_required
 def dashboard():
-    user = session.get("user")
-    stats, servers, activity, reports, weekly_join, moderation_load = mock_data(user)
-
-    return render_template(
-        "dashboard.html",
-        user=user,
-        stats=stats,
-        servers=servers,
-        activity=activity,
-        reports=reports,
-        weekly_join=weekly_join,
-        moderation_load=moderation_load,
-        now=datetime.now().strftime("%a %d %b • %H:%M"),
-    )
-
-
-@app.route("/servers")
-@login_required
-def servers():
-    user = session.get("user")
-    stats, servers, activity, reports, weekly_join, moderation_load = mock_data(user)
-    return render_template("servers.html", user=user, servers=servers)
-
-
-@app.route("/reports")
-@login_required
-def reports():
-    user = session.get("user")
-    stats, servers, activity, reports, weekly_join, moderation_load = mock_data(user)
-    return render_template("reports.html", user=user, reports=reports)
-
-
-@app.route("/settings", methods=["GET", "POST"])
-@login_required
-def settings():
-    user = session.get("user")
-
-    if request.method == "POST":
-        # “Save” settings (fake)
-        flash("Settings saved. The universe remains indifferent.", "success")
-        return redirect(url_for("settings"))
-
-    return render_template("settings.html", user=user)
+    user = session.get("discord_user")
+    return render_template("dashboard.html", user=user)
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)

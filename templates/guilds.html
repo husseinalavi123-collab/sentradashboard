@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set header_title = "Your Servers" %}
+
+{% block content %}
+<div class="card">
+  <div class="cardhead">
+    <div class="cardtitle">Select a server</div>
+    <div class="muted tiny">Only servers where you have Manage Server will show here.</div>
+  </div>
+
+  {% if guilds|length == 0 %}
+    <p class="muted">No manageable servers found. Either you don’t have permissions, or Discord is being Discord.</p>
+  {% else %}
+    <div class="guild-grid">
+      {% for g in guilds %}
+        <a class="guild-card" href="/server/{{ g.id }}">
+          <div class="guild-icon">
+            {% if g.icon %}
+              <img src="https://cdn.discordapp.com/icons/{{ g.id }}/{{ g.icon }}.png?size=64" alt="">
+            {% else %}
+              <div class="guild-fallback">{{ g.name[0]|upper }}</div>
+            {% endif %}
+          </div>
+          <div class="guild-meta">
+            <div class="guild-name">{{ g.name }}</div>
+            <div class="muted tiny">Click to configure</div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+    <h1>Dominate Your Gaming Server</h1>
+    <p>The next generation Discord control panel.</p>
+
+    <div class="cta">
+        <a class="btn-primary" href="/login">Configure Dashboard</a>
+        <a class="btn-secondary"
+           href="https://discord.com/oauth2/authorize?client_id={{ client_id }}&scope=bot%20applications.commands&permissions=8">
+            Add to Server
+        </a>
+    </div>
+</section>
+{% endblock %}

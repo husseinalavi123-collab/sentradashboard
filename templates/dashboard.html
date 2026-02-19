@@ -1,111 +1,24 @@
 {% extends "base.html" %}
-{% set header_title = "Overview" %}
-
 {% block content %}
+<div class="dashboard-layout">
+    <aside class="sidebar">
+        <h3>Server ID</h3>
+        <p>{{ guild_id }}</p>
+        <ul>
+            <li>Moderation</li>
+            <li>Auto Roles</li>
+            <li>Logging</li>
+            <li>Anti Scam</li>
+        </ul>
+    </aside>
 
-<div class="stats">
-  <div class="stat neon">
-    <div class="label">Servers</div>
-    <div class="value"><span class="count" data-target="{{ stats.servers }}">0</span></div>
-    <div class="muted tiny">Connected guilds</div>
-  </div>
-  <div class="stat neon">
-    <div class="label">Members</div>
-    <div class="value"><span class="count" data-target="{{ stats.members }}">0</span></div>
-    <div class="muted tiny">Tracked users</div>
-  </div>
-  <div class="stat neon">
-    <div class="label">Reports</div>
-    <div class="value"><span class="count" data-target="{{ stats.reports_today }}">0</span></div>
-    <div class="muted tiny">Today</div>
-  </div>
-  <div class="stat neon">
-    <div class="label">Tickets</div>
-    <div class="value"><span class="count" data-target="{{ stats.tickets_open }}">0</span></div>
-    <div class="muted tiny">Open</div>
-  </div>
-  <div class="stat neon">
-    <div class="label">Latency</div>
-    <div class="value"><span class="count" data-target="{{ stats.latency_ms }}">0</span>ms</div>
-    <div class="muted tiny">Heartbeat</div>
-  </div>
+    <main class="dashboard-main">
+        <h1>Sentra Control Panel</h1>
+        <div class="card-grid">
+            <div class="card">Bot Status: ONLINE</div>
+            <div class="card">Active Modules: 4</div>
+            <div class="card">Members: Synced</div>
+        </div>
+    </main>
 </div>
-
-<div class="grid2">
-  <div class="card big">
-    <div class="cardhead">
-      <div class="cardtitle">Weekly Joins</div>
-      <div class="muted tiny">Animated chart (not fake bars)</div>
-    </div>
-    <div class="chartbox">
-      <canvas id="joinsChart"></canvas>
-    </div>
-  </div>
-
-  <div class="card big">
-    <div class="cardhead">
-      <div class="cardtitle">Quick Actions</div>
-      <div class="muted tiny">These open dialogs like Discord</div>
-    </div>
-
-    <div class="actions">
-      <button class="btn ghost" data-action="announce">Post announcement</button>
-      <button class="btn ghost" data-action="audit">Run audit</button>
-      <button class="btn ghost" data-action="sync">Sync roles</button>
-      <button class="btn ghost" data-action="invite">Create invite</button>
-    </div>
-
-    <div class="muted tiny">Pro tip: Ctrl/Cmd + K opens Command Center.</div>
-  </div>
-</div>
-
-<div class="grid2">
-  <div class="card">
-    <div class="cardhead">
-      <div class="cardtitle">Servers</div>
-      <a class="link" href="{{ url_for('servers') }}">View all →</a>
-    </div>
-
-    <div class="table">
-      <div class="row head">
-        <div>Name</div><div>Region</div><div>Status</div><div>Members</div><div>Alerts</div>
-      </div>
-      {% for s in servers %}
-      <div class="row">
-        <div><b>{{ s.name }}</b></div>
-        <div class="muted">{{ s.region }}</div>
-        <div><span class="pill {{ 'ok' if s.status == 'Online' else 'warn' }}">{{ s.status }}</span></div>
-        <div>{{ s.members }}</div>
-        <div><span class="pill {{ 'ok' if s.alerts == 0 else 'warn' }}">{{ s.alerts }}</span></div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="cardhead">
-      <div class="cardtitle">Activity Feed</div>
-      <div class="muted tiny">Live-ish with animation</div>
-    </div>
-
-    <div class="feed">
-      {% for a in activity %}
-      <div class="feedrow">
-        <div class="time muted">{{ a.time }}</div>
-        <div class="tag">{{ a.tag }}</div>
-        <div class="text">{{ a.text }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
-{% endblock %}
-
-{% block scripts %}
-<script>
-  // counters
-  window.SENTRA_PAGE = "dashboard";
-  window.SENTRA_WEEKLY = {{ weekly_join|tojson }};
-</script>
 {% endblock %}

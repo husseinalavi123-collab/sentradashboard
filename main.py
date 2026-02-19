@@ -1,91 +1,56 @@
 import os
 import secrets
-from functools import wraps
-
 import requests
-from flask import Flask, render_template, redirect, request, session, url_for, flash
+from functools import wraps
+from flask import Flask, render_template, redirect, request, session, url_for
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 DISCORD_CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
 DISCORD_REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
 
 DISCORD_API = "https://discord.com/api/v10"
-OAUTH_AUTHORIZE = f"{DISCORD_API}/oauth2/authorize"
-OAUTH_TOKEN = f"{DISCORD_API}/oauth2/token"
 
 
-def login_required(view_func):
-    @wraps(view_func)
-    def wrapped(*args, **kwargs):
-        if not session.get("discord_user"):
-            return redirect(url_for("login"))
-        return view_func(*args, **kwargs)
-    return wrapped
-
-
-def discord_headers():
-    token = session.get("access_token")
-    return {"Authorization": f"Bearer {token}"} if token else {}
-
-
-def require_oauth_env():
-    missing = []
-    if not DISCORD_CLIENT_ID:
-        missing.append("DISCORD_CLIENT_ID")
-    if not DISCORD_CLIENT_SECRET:
-        missing.append("DISCORD_CLIENT_SECRET")
-    if not DISCORD_REDIRECT_URI:
-        missing.append("DISCORD_REDIRECT_URI")
-    return missing
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if "user" not in session:
+            return redirect(url_for("landing"))
+        return f(*args, **kwargs)
+    return wrapper
 
 
 @app.get("/")
-def index():
-    return render_template("index.html", user=session.get("discord_user"))
+def landing():
+    return render_template("landing.html", client_id=DISCORD_CLIENT_ID)
 
 
 @app.get("/login")
 def login():
-    missing = require_oauth_env()
-    if missing:
-        return (
-            "Missing environment variables: " + ", ".join(missing) +
-            "<br>Set these in Render → Environment.",
-            500,
-        )
+    state = secrets.token_urlsafe(16)
+    session["state"] = state
 
-    state = secrets.token_urlsafe(24)
-    session["oauth_state"] = state
-
-    params = {
-        "client_id": DISCORD_CLIENT_ID,
-        "redirect_uri": DISCORD_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "identify guilds",
-        "state": state,
-        "prompt": "none",
-    }
-
-    # requests can build the URL but we’ll just do it manually
-    query = "&".join([f"{k}={requests.utils.quote(str(v))}" for k, v in params.items()])
-    return redirect(f"{OAUTH_AUTHORIZE}?{query}")
+    url = (
+        f"https://discord.com/api/oauth2/authorize"
+        f"?client_id={DISCORD_CLIENT_ID}"
+        f"&redirect_uri={DISCORD_REDIRECT_URI}"
+        f"&response_type=code"
+        f"&scope=identify%20guilds"
+        f"&state={state}"
+    )
+    return redirect(url)
 
 
 @app.get("/callback")
 def callback():
-    # 1) Validate state (prevents random people forging login requests)
-    state = request.args.get("state", "")
-    if not state or state != session.get("oauth_state"):
-        return "Invalid OAuth state. Try logging in again.", 400
+    if request.args.get("state") != session.get("state"):
+        return render_template("error.html", message="Invalid state.")
 
-    code = request.args.get("code", "")
-    if not code:
-        return "Missing code from Discord.", 400
+    code = request.args.get("code")
 
-    # 2) Exchange code for access token
     data = {
         "client_id": DISCORD_CLIENT_ID,
         "client_secret": DISCORD_CLIENT_SECRET,
@@ -93,98 +58,58 @@ def callback():
         "code": code,
         "redirect_uri": DISCORD_REDIRECT_URI,
     }
+
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    r = requests.post(f"{DISCORD_API}/oauth2/token", data=data, headers=headers)
 
-    token_res = requests.post(OAUTH_TOKEN, data=data, headers=headers, timeout=20)
-    if token_res.status_code != 200:
-        return f"Token exchange failed: {token_res.status_code} {token_res.text}", 400
+    token = r.json().get("access_token")
+    session["token"] = token
 
-    token_json = token_res.json()
-    session["access_token"] = token_json.get("access_token")
+    user = requests.get(
+        f"{DISCORD_API}/users/@me",
+        headers={"Authorization": f"Bearer {token}"}
+    ).json()
 
-    # 3) Get user info
-    me_res = requests.get(f"{DISCORD_API}/users/@me", headers=discord_headers(), timeout=20)
-    if me_res.status_code != 200:
-        return f"Failed to fetch user: {me_res.status_code} {me_res.text}", 400
+    session["user"] = user
 
-    user = me_res.json()
-    session["discord_user"] = {
-        "id": user.get("id"),
-        "username": user.get("username"),
-        "global_name": user.get("global_name"),
-        "avatar": user.get("avatar"),
-    }
-
-    flash("Logged in with Discord.", "success")
     return redirect(url_for("guilds"))
 
 
 @app.get("/guilds")
 @login_required
 def guilds():
-    # Get guilds the user is in
-    res = requests.get(f"{DISCORD_API}/users/@me/guilds", headers=discord_headers(), timeout=20)
-    if res.status_code != 200:
-        return f"Failed to fetch guilds: {res.status_code} {res.text}", 400
+    r = requests.get(
+        f"{DISCORD_API}/users/@me/guilds",
+        headers={"Authorization": f"Bearer {session['token']}"}
+    )
 
-    guilds = res.json()
+    guilds = r.json()
 
-    # Filter to guilds where user has MANAGE_GUILD permission (0x20)
-    manageable = []
-    MANAGE_GUILD = 0x20
+    manageable = [
+        g for g in guilds
+        if (int(g["permissions"]) & 0x20) == 0x20
+    ]
 
-    for g in guilds:
-        perms = int(g.get("permissions", 0))
-        if (perms & MANAGE_GUILD) == MANAGE_GUILD:
-            manageable.append({
-                "id": g["id"],
-                "name": g["name"],
-                "icon": g.get("icon"),
-            })
+    return render_template("guilds.html", guilds=manageable)
 
-    user = session.get("discord_user")
-    return render_template("guilds.html", user=user, guilds=manageable)
+
+@app.get("/dashboard/<guild_id>")
+@login_required
+def dashboard(guild_id):
+    return render_template("dashboard.html", guild_id=guild_id)
 
 
 @app.get("/logout")
 def logout():
     session.clear()
-    flash("Logged out.", "success")
-    return redirect(url_for("index"))
+    return redirect(url_for("landing"))
 
 
-# Placeholder “dashboard” route (you can keep yours too)
-@app.get("/dashboard")
-@login_required
-def dashboard():
-    user = session.get("discord_user")
-    return render_template("dashboard.html", user=user)
-
-@app.get("/servers")
-@login_required
-def servers():
-    user = session.get("discord_user")
-    return render_template("servers.html", user=user)
-
-@app.get("/reports")
-@login_required
-def reports():
-    user = session.get("discord_user")
-    return render_template("reports.html", user=user)
-
-@app.get("/settings")
-@login_required
-def settings():
-    user = session.get("discord_user")
-    return render_template("settings.html", user=user)
-
-@app.get("/server/<guild_id>")
-@login_required
-def server_config(guild_id):
-    user = session.get("discord_user")
-    return render_template("server.html", user=user, guild_id=guild_id)
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("error.html", message="Page not found."), 404
 
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)

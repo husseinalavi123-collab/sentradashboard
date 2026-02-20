@@ -22,7 +22,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
 # Cookie settings: prevents OAuth session/state nonsense on Render
 app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=True,  # Render uses https
+    SESSION_COOKIE_SECURE=False,  # Render uses https
 )
 
 DISCORD_CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID", "").strip()

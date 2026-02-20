@@ -1,24 +1,104 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="dashboard-layout">
+{% block body %}
+<div class="container">
+  <div class="layout">
     <aside class="sidebar">
-        <h3>Server ID</h3>
-        <p>{{ guild_id }}</p>
-        <ul>
-            <li>Moderation</li>
-            <li>Auto Roles</li>
-            <li>Logging</li>
-            <li>Anti Scam</li>
-        </ul>
+      <button class="btn small block" data-sidebar-toggle type="button">Toggle Sidebar</button>
+
+      <h4>Navigation</h4>
+      <a class="side-item active" href="{{ url_for('dashboard') }}"><span class="label">🏠 Overview</span><span class="badge">LIVE</span></a>
+      <a class="side-item" href="{{ url_for('servers') }}"><span class="label">🖥 Servers</span><span class="badge">N</span></a>
+      <a class="side-item" href="{{ url_for('reports') }}"><span class="label">🧾 Reports</span><span class="badge">{{ stats.reports_today }}</span></a>
+      <a class="side-item" href="{{ url_for('settings') }}"><span class="label">⚙️ Settings</span><span class="badge">CFG</span></a>
+
+      <div class="sidebar-bottom">
+        <div class="profile">
+          <div class="avatar"></div>
+          <div class="meta">
+            <b>{{ user.username }}</b>
+            <small>Owner</small>
+          </div>
+        </div>
+        <a class="btn block danger" href="{{ url_for('logout') }}">Logout</a>
+      </div>
     </aside>
 
-    <main class="dashboard-main">
-        <h1>Sentra Control Panel</h1>
-        <div class="card-grid">
-            <div class="card">Bot Status: ONLINE</div>
-            <div class="card">Active Modules: 4</div>
-            <div class="card">Members: Synced</div>
+    <main class="main">
+      <div class="header-row">
+        <div class="title">
+          <h2>Dashboard</h2>
+          <p>Server: <span class="kbd">{{ active_guild.name }}</span></p>
         </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Servers</h3>
+          <div class="big">{{ stats.servers }}</div>
+          <div class="sub">Current dashboard scope</div>
+        </div>
+        <div class="card">
+          <h3>Actions</h3>
+          <div class="big">{{ stats.actions }}</div>
+          <div class="sub">Recent events logged</div>
+        </div>
+        <div class="card">
+          <h3>Reports Today</h3>
+          <div class="big">{{ stats.reports_today }}</div>
+          <div class="sub">Based on logs</div>
+        </div>
+        <div class="card">
+          <h3>Status</h3>
+          <div class="big">{{ stats.status }}</div>
+          <div class="sub">Render survived another day</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <h3>Quick Actions</h3>
+          <div class="actions">
+            <a class="btn block" href="{{ url_for('settings') }}">Open Settings</a>
+            <a class="btn block primary" href="{{ url_for('guilds') }}">Switch Server</a>
+            <form method="post" action="{{ url_for('action_report') }}">
+              <button class="btn block" type="submit">Create Test Report</button>
+            </form>
+            <div class="hint">These are dashboard-side actions. Bot wiring comes later.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Activity Signal</h3>
+          <div class="spark">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="sub">Fake graph, real motivation.</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="card">
+        <h3>Recent Activity</h3>
+        {% if not events %}
+          <div class="note">No events yet. Use the dashboard, it’s not decoration.</div>
+        {% else %}
+          <table class="table">
+            <thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Detail</th></tr></thead>
+            <tbody>
+              {% for e in events %}
+              <tr>
+                <td><span class="tag">{{ e.created_at }}</span></td>
+                <td>{{ e.actor }}</td>
+                <td><span class="tag">{{ e.action }}</span></td>
+                <td>{{ e.detail }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      </div>
     </main>
+  </div>
 </div>
 {% endblock %}

@@ -3,19 +3,26 @@
 <section class="hero">
   <div class="container">
     <h1>Login</h1>
-    <p>Authenticate with Discord so you can pick a server and configure Sentra.</p>
+    <p>This page never auto-redirects. No loops. No iMac meltdown.</p>
 
     <div class="hero-actions">
-      {% if discord_ready %}
-        <a class="btn primary" href="{{ auth_url }}">Login with Discord</a>
+      {% if oauth_ready %}
+        <a class="btn primary" href="{{ url_for('oauth_start') }}">Continue with Discord</a>
       {% else %}
         <div class="note">
           Discord OAuth not configured yet.<br>
-          Add these Render env vars: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI.
+          Add env vars on Render: DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI.<br>
+          Then check <span class="kbd">/envcheck</span>.
         </div>
       {% endif %}
-      <a class="btn" href="{{ url_for('landing') }}">Back</a>
+      <a class="btn" href="{{ url_for('index') }}">Back</a>
     </div>
+
+    {% if error %}
+      <div class="container" style="margin-top:18px;">
+        <div class="note">{{ error }}</div>
+      </div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

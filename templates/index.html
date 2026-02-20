@@ -2,13 +2,17 @@
 {% block body %}
 <section class="hero">
   <div class="container">
-    <h1>Dominate Your Gaming Server</h1>
-    <p>The next-generation Discord control panel. Install the bot, then configure everything from your dashboard.</p>
+    <h1>Control Your Gaming Server</h1>
+    <p>Install Sentra, log in with Discord, pick your server, and configure everything from a clean control panel.</p>
 
     <div class="hero-actions">
-      <a class="btn primary" href="{{ url_for('login') }}">Open Dashboard</a>
+      {% if oauth_ready %}
+        <a class="btn primary" href="{{ url_for('oauth_start') }}">Login with Discord</a>
+      {% else %}
+        <a class="btn primary" href="{{ url_for('login') }}">Login</a>
+      {% endif %}
 
-      {% if discord_ready and install_url %}
+      {% if install_url %}
         <a class="btn" href="{{ install_url }}" target="_blank" rel="noreferrer">Add to Server</a>
       {% else %}
         <a class="btn" href="{{ url_for('login') }}">Add to Server</a>
@@ -16,25 +20,26 @@
     </div>
 
     <div class="hero-note">
-      {% if not discord_ready %}
-        Setup required: Add DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_REDIRECT_URI on Render.
+      {% if not oauth_ready %}
+        OAuth not configured yet. Fix env vars and stop blaming the universe.
+        Check <span class="kbd">/envcheck</span>.
       {% else %}
-        Discord OAuth ready. Install + login flow enabled.
+        OAuth ready. You can log in.
       {% endif %}
     </div>
 
     <div class="feature-grid">
       <div class="feature">
-        <h3>Server Settings</h3>
-        <p>Prefix, welcome system, automod toggles, and logs. Saved per server.</p>
+        <h3>Server Config</h3>
+        <p>Prefix, welcome message, log channel, anti-raid toggles. Saved per server.</p>
       </div>
       <div class="feature">
-        <h3>Moderation Panel</h3>
-        <p>Actions UI now, real bot wiring later. Still tracks audit events today.</p>
+        <h3>Audit Trail</h3>
+        <p>Every action logs an event. Good for debugging and “who touched this?” moments.</p>
       </div>
       <div class="feature">
-        <h3>Reports & Tickets</h3>
-        <p>Log-driven dashboard. Not random numbers pretending to be “analytics”.</p>
+        <h3>Dyno-style Flow</h3>
+        <p>Add bot → Login → Select guild → Configure. The correct way.</p>
       </div>
     </div>
   </div>

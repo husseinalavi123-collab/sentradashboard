@@ -10,16 +10,17 @@
         <div class="avatar"></div>
         <div class="meta">
           <b>{{ user.username }}</b>
-          <small>Discord login</small>
+          <small>Discord</small>
         </div>
       </div>
 
       <div class="sidebar-bottom">
-        {% if discord_ready and install_url %}
+        {% if install_url %}
           <a class="btn block primary" href="{{ install_url }}" target="_blank" rel="noreferrer">Add bot to server</a>
         {% else %}
-          <div class="note">Install requires Discord OAuth env vars on Render.</div>
+          <div class="note">Install link disabled until OAuth env vars exist.</div>
         {% endif %}
+        <a class="btn block danger" href="{{ url_for('logout') }}">Logout</a>
       </div>
     </aside>
 
@@ -27,15 +28,12 @@
       <div class="header-row">
         <div class="title">
           <h2>Select a Server</h2>
-          <p>Only servers where you have <span class="kbd">Manage Server</span> permission show up.</p>
+          <p>Only servers where you have <span class="kbd">Manage Server</span> appear.</p>
         </div>
       </div>
 
       {% if not guilds %}
-        <div class="note">
-          No manageable servers found. Either you don’t have Manage Server permission anywhere,
-          or Discord didn’t return your guild list.
-        </div>
+        <div class="note">No manageable servers found. Get permissions or test in your own server.</div>
       {% endif %}
 
       <div class="guild-grid">
@@ -45,7 +43,7 @@
             <div class="icon"></div>
             <div>
               <b>{{ g.name }}</b>
-              <small>Guild ID: {{ g.id }}</small>
+              <small>ID: {{ g.id }}</small>
             </div>
           </div>
           <a class="btn primary" href="{{ url_for('select_guild', guild_id=g.id) }}">Configure</a>
